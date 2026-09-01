@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Call Log — IDN Summit Fall '26</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F2F3F0;
+    --paper-raised:#FAFAF8;
+    --ink:#1E2B28;
+    --ink-soft:#4B5B57;
+    --line:#D6D9D2;
+    --teal:#3C7A6D;
+    --teal-deep:#2A5850;
+    --amber:#B8793B;
+    --brick:#AE4B3B;
+    --brick-deep:#8E3B2E;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    font-size:16px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  h1,h2,h3{
+    font-family:'Fraunces', ui-serif, Georgia, serif;
+    font-weight:500;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .app{max-width:520px;margin:0 auto;min-height:100vh;background:var(--paper);display:flex;flex-direction:column;}
+
+  /* top bar */
+  .topbar{
+    padding:18px 20px 14px;
+    border-bottom:1px solid var(--line);
+    display:flex;align-items:baseline;justify-content:space-between;
+    position:sticky;top:0;background:var(--paper);z-index:5;
+  }
+  .topbar h1{font-size:20px;color:var(--teal-deep);}
+  .topbar .sub{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .tabs{display:flex;gap:0;border-bottom:1px solid var(--line);}
+  .tab{
+    flex:1;padding:11px 0;text-align:center;font-size:13px;color:var(--ink-soft);
+    border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;
+    font-family:inherit;cursor:pointer;
+  }
+  .tab.active{color:var(--teal-deep);border-bottom-color:var(--teal);font-weight:500;}
+
+  .screen{padding:18px 20px 40px;flex:1;}
+  .hidden{display:none !important;}
+
+  /* search / attendee list */
+  .search-wrap{position:relative;margin-bottom:14px;}
+  input[type=text], textarea{
+    width:100%;
+    font-family:inherit;font-size:15px;color:var(--ink);
+    background:var(--paper-raised);
+    border:1px solid var(--line);border-radius:3px;
+    padding:11px 13px;
+  }
+  input[type=text]:focus, textarea:focus{outline:2px solid var(--teal);outline-offset:-1px;}
+  .attendee-count{font-size:12px;color:var(--ink-soft);margin:2px 2px 12px;}
+  .attendee-row{
+    padding:12px 2px;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
+    cursor:pointer;
+  }
+  .attendee-row:active{background:var(--paper-raised);}
+  .attendee-main .name{font-weight:500;font-size:15px;}
+  .attendee-main .role{font-size:13px;color:var(--ink-soft);margin-top:1px;}
+  .attendee-flags{display:flex;gap:5px;flex-shrink:0;margin-top:2px;}
+  .flag{font-size:10px;padding:2px 6px;border-radius:2px;font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+  .flag.target{background:#E4EEE9;color:var(--teal-deep);}
+  .flag.sa{background:#F2E6D8;color:var(--amber);}
+  .flag.called{background:var(--teal-deep);color:#fff;}
+  .empty-state{padding:40px 4px;text-align:center;color:var(--ink-soft);font-size:14px;}
+
+  /* selected attendee card on call screen */
+  .attendee-card{
+    border:1px solid var(--line);background:var(--paper-raised);border-radius:4px;
+    padding:16px;margin-bottom:20px;
+  }
+  .attendee-card .name{font-family:'Fraunces',serif;font-size:22px;font-weight:500;}
+  .attendee-card .role{font-size:14px;color:var(--ink-soft);margin-top:3px;}
+  .attendee-card .loc{font-size:12px;color:var(--ink-soft);margin-top:6px;}
+  .swap-link{font-size:12px;color:var(--teal-deep);text-decoration:underline;background:none;border:none;padding:0;margin-top:10px;font-family:inherit;cursor:pointer;}
+
+  /* record controls */
+  .record-area{text-align:center;padding:30px 0 10px;}
+  .record-btn{
+    width:96px;height:96px;border-radius:50%;
+    border:2px solid var(--brick);background:var(--paper-raised);
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto;cursor:pointer;
+  }
+  .record-btn .dot{width:34px;height:34px;border-radius:50%;background:var(--brick);}
+  .record-btn.recording{background:var(--brick);border-color:var(--brick);}
+  .record-btn.recording .dot{border-radius:6px;width:28px;height:28px;background:#fff;}
+  .timer{font-family:'IBM Plex Mono',monospace;font-size:28px;margin-top:16px;color:var(--ink);}
+  .record-hint{font-size:13px;color:var(--ink-soft);margin-top:8px;}
+  .record-hint.live{color:var(--brick-deep);font-weight:500;}
+
+  .btn{
+    display:block;width:100%;padding:13px;border-radius:3px;border:none;
+    font-family:inherit;font-size:15px;font-weight:500;cursor:pointer;text-align:center;
+  }
+  .btn-primary{background:var(--teal-deep);color:#fff;}
+  .btn-primary:disabled{background:#A9B3AF;}
+  .btn-secondary{background:none;border:1px solid var(--line);color:var(--ink);}
+  .btn-danger{background:none;border:1px solid var(--brick);color:var(--brick-deep);}
+  .btn-row{display:flex;gap:10px;margin-top:14px;}
+  .btn-row .btn{flex:1;}
+
+  .step-label{font-size:12px;text-transform:none;color:var(--ink-soft);margin-bottom:6px;letter-spacing:.01em;}
+
+  /* processing */
+  .proc-wrap{padding:60px 10px;text-align:center;}
+  .proc-msg{font-family:'Fraunces',serif;font-size:19px;margin-bottom:10px;}
+  .proc-sub{font-size:13px;color:var(--ink-soft);}
+  .spinner{
+    width:28px;height:28px;border-radius:50%;
+    border:3px solid var(--line);border-top-color:var(--teal);
+    margin:0 auto 20px;animation:spin 0.9s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* speaker assign */
+  .speaker-card{
+    border:1px solid var(--line);background:var(--paper-raised);border-radius:4px;
+    padding:14px;margin-bottom:12px;
+  }
+  .speaker-card .label{font-size:12px;color:var(--ink-soft);margin-bottom:6px;font-family:'IBM Plex Mono',monospace;}
+  .speaker-card .snippet{font-size:14px;font-style:italic;color:var(--ink);margin-bottom:12px;}
+  .speaker-card .snippet::before{content:"“";}
+  .speaker-card .snippet::after{content:"”";}
+
+  /* review */
+  .field-block{margin-bottom:18px;}
+  .field-block label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;}
+  textarea{resize:vertical;min-height:80px;line-height:1.5;}
+  .ai-list{list-style:none;padding:0;margin:0;}
+  .ai-item{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;}
+  .ai-item input[type=text]{flex:1;}
+  .ai-item button{background:none;border:none;color:var(--brick-deep);font-size:18px;cursor:pointer;padding:6px 2px;line-height:1;}
+  .add-ai{font-size:13px;color:var(--teal-deep);background:none;border:none;padding:0;cursor:pointer;font-family:inherit;}
+  details.transcript-toggle{border:1px solid var(--line);border-radius:3px;padding:10px 13px;background:var(--paper-raised);}
+  details.transcript-toggle summary{font-size:13px;color:var(--ink-soft);cursor:pointer;}
+  details.transcript-toggle pre{white-space:pre-wrap;font-family:'IBM Plex Sans';font-size:13px;line-height:1.6;margin-top:10px;}
+
+  /* history */
+  .hist-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .hist-toolbar .count{font-size:13px;color:var(--ink-soft);}
+  .export-btn{font-size:13px;background:var(--teal-deep);color:#fff;border:none;border-radius:3px;padding:9px 14px;cursor:pointer;font-family:inherit;}
+  .hist-item{border-bottom:1px solid var(--line);padding:14px 2px;}
+  .hist-item .h-name{font-weight:500;font-size:15px;}
+  .hist-item .h-meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .hist-item .h-summary{font-size:13.5px;margin-top:8px;color:var(--ink);}
+  .hist-item .h-actions{margin-top:8px;font-size:13px;}
+  .hist-item .h-actions ul{margin:4px 0 0;padding-left:18px;}
+  .hist-item .h-delete{font-size:12px;color:var(--brick-deep);background:none;border:none;padding:0;margin-top:8px;cursor:pointer;font-family:inherit;}
+
+  .error-box{background:#F5E4E0;border:1px solid var(--brick);color:var(--brick-deep);padding:12px;border-radius:3px;font-size:13px;margin-bottom:14px;}
+  .setup-note{font-size:12px;color:var(--ink-soft);margin-top:14px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div>
+      <h1>Call Log</h1>
+      <div class="sub">IDN Summit — Fall '26</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="record">Record</button>
+    <button class="tab" data-tab="history">History</button>
+  </div>
+
+  <!-- ============ RECORD TAB ============ -->
+  <div id="tab-record" class="screen">
+
+    <!-- Step: pick attendee -->
+    <div id="view-picker">
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="Search name or organization…">
+      </div>
+      <div class="attendee-count" id="attendeeCount"></div>
+      <div id="attendeeList"></div>
+    </div>
+
+    <!-- Step: ready to record -->
+    <div id="view-call" class="hidden">
+      <div class="attendee-card" id="callAttendeeCard"></div>
+      <button class="swap-link" id="changeAttendeeBtn">Change person</button>
+
+      <div class="record-area">
+        <div class="step-label" id="recordStepLabel">Ready when you are</div>
+        <button class="record-btn" id="recordBtn"><div class="dot"></div></button>
+        <div class="timer" id="timer">00:00</div>
+        <div class="record-hint" id="recordHint">Put the phone where it can hear both of you — speaker call or in person.</div>
+      </div>
+    </div>
+
+    <!-- Step: processing -->
+    <div id="view-processing" class="hidden">
+      <div class="proc-wrap">
+        <div class="spinner"></div>
+        <div class="proc-msg" id="procMsg">Uploading audio…</div>
+        <div class="proc-sub" id="procSub">This usually takes under a minute.</div>
+      </div>
+      <div id="procError"></div>
+    </div>
+
+    <!-- Step: assign speakers -->
+    <div id="view-speakers" class="hidden">
+      <div class="step-label">Who's who?</div>
+      <p style="font-size:13px;color:var(--ink-soft);margin-top:0;">The transcript separated two voices automatically. Tell us which one is you.</p>
+      <div id="speakerCards"></div>
+    </div>
+
+    <!-- Step: review -->
+    <div id="view-review" class="hidden">
+      <div class="attendee-card" id="reviewAttendeeCard"></div>
+
+      <div class="field-block">
+        <label for="summaryField">Summary</label>
+        <textarea id="summaryField" rows="4"></textarea>
+      </div>
+
+      <div class="field-block">
+        <label>Action items</label>
+        <ul class="ai-list" id="actionItemsList"></ul>
+        <button class="add-ai" id="addActionItem">+ Add action item</button>
+      </div>
+
+      <div class="field-block">
+        <details class="transcript-toggle">
+          <summary>View full transcript</summary>
+          <pre id="fullTranscript"></pre>
+        </details>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="discardCallBtn">Discard</button>
+        <button class="btn btn-primary" id="saveCallBtn">Save to call log</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ HISTORY TAB ============ -->
+  <div id="tab-history" class="screen hidden">
+    <div class="hist-toolbar">
+      <div class="count" id="histCount">0 calls logged</div>
+      <button class="export-btn" id="exportBtn">Export CSV</button>
+    </div>
+    <div id="histList"></div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const ASSEMBLYAI_KEY = "ec6c47a735864ff5b897f3720fa9454f";
+const CLAUDE_MODEL = "claude-sonnet-4-6";
+
+/* ============================================================
+   ATTENDEE DATA
+   ============================================================ */
+const ATTENDEES = [{"fn": "Samuel", "ln": "Braga", "org": "AdventHealth", "title": "Director, System Strategic Sourcing", "city": "Altamonte Springs", "state": "FL", "mph": "Y", "target": "N", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Quan", "ln": "Pho", "org": "AdventHealth", "title": "Market Director of Pharmacy", "city": "Orange City", "state": "FL", "mph": "Y", "target": "N", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Christine", "ln": "Bloom", "org": "Advocate Health", "title": "Strategic Sourcing Manager", "city": "Charlotte", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Megan", "ln": "Corrigan", "org": "Advocate Health", "title": "Director of Pharmacy and Emergency Management", "city": "Elmhurst", "state": "IL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Dan", "ln": "Dangler", "org": "Advocate Health", "title": "AVP of Pharmacy Sourcing", "city": "La Grange Park", "state": "IL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lisa", "ln": "Grimm", "org": "Advocate Health", "title": "Associate Director, Strategic Sourcing", "city": "Charlotte", "state": "NC", "mph": "", "target": "Y", "comment": "Intro", "sa_target": "", "sa_notes": ""}, {"fn": "Matt", "ln": "Jones", "org": "Advocate Health", "title": "Strategic Sourcing Manager", "city": "Charlotte", "state": "NC", "mph": "", "target": "Y", "comment": "Intro", "sa_target": "", "sa_notes": ""}, {"fn": "Heather", "ln": "Just", "org": "Advocate Health", "title": "Clinical Value Analysis Facilitator", "city": "Charlotte", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lauren", "ln": "Kutz", "org": "Advocate Health", "title": "Clinical Value Analysis Facilitator", "city": "Charlotte", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Emily", "ln": "Meyer", "org": "Advocate Health", "title": "Vice President, Pharmacy Operations", "city": "Manteno", "state": "IL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Sydney", "ln": "Nelson", "org": "Advocate Health", "title": "Supply Chain Management Director", "city": "Charlotte", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Regina", "ln": "Wyatt", "org": "Advocate Health", "title": "Strategic Sourcing Manager", "city": "Charlotte", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Matthew", "ln": "Bobo", "org": "Affiliated Enterprise Solutions", "title": "Vice President", "city": "Leander", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Christopher", "ln": "Giese", "org": "Affiliated Enterprise Solutions", "title": "Senior Vice President", "city": "Livingston", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Holly", "ln": "Spiegl", "org": "Affiliated Enterprise Solutions", "title": "Director Client Success", "city": "Austin", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Meenu", "ln": "Bansal", "org": "Akron Children's Hospital", "title": "Clinical Resource Manager", "city": "Streetsboro", "state": "OH", "mph": "", "target": "", "comment": "Intro", "sa_target": "", "sa_notes": ""}, {"fn": "Kim", "ln": "Myers", "org": "Akumin", "title": "VP of Products and Partnerships", "city": "Plantation", "state": "FL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jenna", "ln": "Thibault", "org": "Akumin", "title": "Senior Director of Partnerships", "city": "Plantation", "state": "FL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Carmela", "ln": "Troupe", "org": "Akumin", "title": "Director of Strategic Accounts", "city": "Plantation", "state": "FL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Susan", "ln": "Armer", "org": "Albany Med Health System", "title": "System Director, Sourcing, Contracting, and Value Analysis", "city": "Menands", "state": "NY", "mph": "N", "target": "P", "comment": "Potential Target ", "sa_target": "", "sa_notes": ""}, {"fn": "Evan", "ln": "Kuyrkendall", "org": "Albany Med Health System", "title": "System Director Pharmacy Supply Chain", "city": "Albany", "state": "NY", "mph": "N", "target": "P", "comment": "Potential Target ", "sa_target": "", "sa_notes": ""}, {"fn": "Flavius", "ln": "Toader", "org": "Albany Med Health System", "title": "System Vice President of Supply Chain", "city": "Albany", "state": "NY", "mph": "N", "target": "P", "comment": "Potential Target ", "sa_target": "", "sa_notes": ""}, {"fn": "Sharon", "ln": "Bestle", "org": "Albany Medical Health System", "title": "Value Analysis Resource Manager", "city": "Troy", "state": "NY", "mph": "N", "target": "P", "comment": "Potential Target ", "sa_target": "", "sa_notes": ""}, {"fn": "Brandy", "ln": "Fehrenbach", "org": "Alliant", "title": "Chief Clinical Officer", "city": "Louisville", "state": "KY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Fred", "ln": "Genter", "org": "Alliant", "title": "Vice President Strategic Development", "city": "Louisville", "state": "KY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kary", "ln": "LeBlanc", "org": "Alliant", "title": "Chief Operating Officer", "city": "Louisville", "state": "KY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Christina", "ln": "Rauf", "org": "Alliant", "title": "Associate Vice President of Contracting", "city": "Edgewood", "state": "KY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Shawn", "ln": "Smith", "org": "Alliant", "title": "Senior Director of Strategic Implementation", "city": "Prospect", "state": "KY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Nancy", "ln": "Duffy", "org": "AnMed", "title": "Director of Supply Chain", "city": "Anderson", "state": "SC", "mph": "", "target": "Y", "comment": "Intro", "sa_target": "", "sa_notes": ""}, {"fn": "Chanel", "ln": "Zunino", "org": "AnMed", "title": "Supply Chain Distribution Manager", "city": "Anderson", "state": "SC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Riley", "ln": "Amundson", "org": "Avera Health", "title": "Director - Contract Lifecycle Management", "city": "Colton", "state": "SD", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Sara", "ln": "Henderson", "org": "Avera Health", "title": "SVP Supply Chain and Sustainability", "city": "Sioux Falls", "state": "SD", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Matthew", "ln": "Shriver", "org": "Avera Health", "title": "Director of Procedural Supply Chain Operations", "city": "Sioux Falls", "state": "SD", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Taya", "ln": "Swanson", "org": "Avera Health", "title": "Strategic Souring Director", "city": "Sioux Falls", "state": "SD", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Gheed", "ln": "Al Jubury", "org": "Banner Health", "title": "GY-2 Pharmacy Resident", "city": "Chandler", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Drew", "ln": "Bailey", "org": "Banner Health", "title": "Strategic Sourcing Director", "city": "Chandler", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Veronica", "ln": "Craft", "org": "Banner Health", "title": "Contract Administrator", "city": "Gilbert", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Russ", "ln": "Funk", "org": "Banner Health", "title": "CEO, Pharmacy Services", "city": "Phoenix", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Mike", "ln": "Halmrast", "org": "Banner Health", "title": "Executive Director, Supply Chain Contracting", "city": "Phoenix", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "James", "ln": "Hutchinson", "org": "Banner Health", "title": "Senior Director Supply Chain IS", "city": "Phoenix", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Tina", "ln": "King", "org": "Banner Health", "title": "Senior Contract Administrator", "city": "Phoenix", "state": "AZ", "mph": "", "target": "", "comment": "Contract is 6 months and assignment", "sa_target": "Y", "sa_notes": "Would like to discuss regional contract in PHX currently contrract and operate at 6 Banner facilities in PHX"}, {"fn": "Ryan", "ln": "Koos", "org": "Banner Health", "title": "Senior Vice President, Chief Supply Chain Officer", "city": "Phoenix", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Trent", "ln": "Larson", "org": "Banner Health", "title": "Advanced Practice Pharmacist", "city": "Gold Canyon", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Debralyn", "ln": "Pruett", "org": "Banner Health", "title": "Associate Director Pharmacy Procurement Prep & Distribution", "city": "Gilbert", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kevin", "ln": "Roche", "org": "Banner Health", "title": "Senior Director, Pharmacy Preparation & Dispensing", "city": "Tempe", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kimberly", "ln": "Ury", "org": "Banner Health", "title": "Senior Contracts Administrator", "city": "Gilbert", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Thomas", "ln": "Matanich", "org": "Baptist Healthcare Systems", "title": "AVP of Pharmacy Business Operations and Finance", "city": "La Grange", "state": "KY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Andrew", "ln": "Lusk", "org": "BayCare Health System", "title": "Senior Contract Analyst", "city": "Temple Terrace", "state": "FL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Anthony", "ln": "Carpenter", "org": "Bayhealth Medical Center", "title": "Director of Sourcing and Contracting", "city": "Milford", "state": "DE", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Wade", "ln": "Flowers", "org": "Bingham Healthcare", "title": "Director of Pharmacy", "city": "Blackfoot", "state": "ID", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Dan", "ln": "Hurry", "org": "Bon Secours Mercy Health", "title": "Chief Supply Chain Officer", "city": "Cincinnati", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Seth", "ln": "Wardell", "org": "Bon Secours Mercy Health", "title": "Vice President - Business Development", "city": "Ponte Vedra Beach", "state": "FL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Claudia", "ln": "Chacon", "org": "Boston Children's Hospital", "title": "Supply Chain Coordinator", "city": "Davenport", "state": "FL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Rattana", "ln": "Ouch", "org": "Boston Children's Hospital", "title": "Pharmacy Supply Chain coordinator", "city": "Boston", "state": "MA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Henry", "ln": "Tomasuolo", "org": "Boston Children's Hospital", "title": "Senior Vice President for Support Services", "city": "Boston", "state": "MA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Chris", "ln": "Baillargeon", "org": "Cape Cod Healthcare", "title": "Program Manager - Clinical Resources", "city": "Barnstable", "state": "MA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "William", "ln": "Stitt", "org": "Cape Cod Healthcare", "title": "Executive Director Supply Chain Services", "city": "Barnstable", "state": "MA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Dina", "ln": "Bassett", "org": "Capstone Health Alliance", "title": "Director, Member Services", "city": "Pawleys Island", "state": "SC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Tim", "ln": "Bugg", "org": "Capstone Health Alliance", "title": "CEO", "city": "Fletcher", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Tabitha", "ln": "Calloway", "org": "Capstone Health Alliance", "title": "Vice President of Contracting", "city": "Edneyville", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Angie", "ln": "Edwards", "org": "Capstone Health Alliance", "title": "Director, Contracting", "city": "Fletcher", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Gina", "ln": "Kretsch", "org": "Capstone Health Alliance", "title": "Director, Member Services", "city": "Jacksonville", "state": "FL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Yolandi", "ln": "Myers", "org": "Capstone Health Alliance", "title": "President & CAO", "city": "Akron", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Fred", "ln": "Pane", "org": "Capstone Health Alliance", "title": "Vice President, Pharmacy Services", "city": "Concord", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Donna", "ln": "Webster", "org": "Capstone Health Alliance", "title": "Contract Manager", "city": "Parsonsburg", "state": "MD", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Michael", "ln": "Czar", "org": "Carilion Clinic", "title": "Director of Pharmacy", "city": "Christiansburg", "state": "VA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Clint", "ln": "Wenger", "org": "CentraCare Health", "title": "Executive Director Supply Chain", "city": "St. Cloud", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Tom", "ln": "Wieber", "org": "CentraCare Health", "title": "Contract Portfolio Manager", "city": "St. Cloud", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Natalie", "ln": "Hughes", "org": "Children's Nebraska", "title": "Manager, Value Analysis & Purchasing", "city": "Omaha", "state": "NE", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lori", "ln": "Kirsch", "org": "Children's Nebraska", "title": "Director of Supply Chain Management", "city": "Omaha", "state": "NE", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lori", "ln": "Westphal", "org": "Children's Nebraska", "title": "Manager Distribution Services", "city": "Omaha", "state": "NE", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Richard", "ln": "Dormer", "org": "ChristianaCare", "title": "Executive Director, Spend Management", "city": "Newark", "state": "DE", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Brian", "ln": "McAuliffe", "org": "ChristianaCare", "title": "Director of Clinical Sourcing and Value Analysis", "city": "Newark", "state": "DE", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Sylvester", "ln": "DuPree", "org": "Cincinnati Children's Hospital Medical Center", "title": "Vice President, Supply Chain Management / Food & Nutrition Services", "city": "Cincinnati", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Gloria", "ln": "Graham", "org": "Cincinnati Children's Hospital Medical Center", "title": "Manager, Value Analysis", "city": "Cincinnati", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Bradley", "ln": "Musk", "org": "Cincinnati Children's Hospital Medical Center", "title": "Director, Procurement", "city": "Cincinnati", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Miyohnna", "ln": "Terry", "org": "Cincinnati Children's Hospital Medical Center", "title": "Senior Project Manager", "city": "Cincinnati", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jen", "ln": "Alvey", "org": "Cleveland Clinic", "title": "Senior Director Supply Chain Pharmacy Sourcing", "city": "Greenwood", "state": "IN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Scott", "ln": "Dwyer", "org": "Cleveland Clinic", "title": "Senior Director Commodity Sourcing", "city": "Beachwood", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Michael", "ln": "Fahey", "org": "Cleveland Clinic", "title": "Category Manager", "city": "Beachwood", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Alana", "ln": "Frezel", "org": "Cleveland Clinic", "title": "Director, IT Sourcing", "city": "Solon", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Alexsandra", "ln": "Nilges", "org": "Cleveland Clinic", "title": "Category Manager, Pharmacy Sourcing", "city": "Cleveland", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Brenna", "ln": "Kail", "org": "Cleveland Clinic / Excelerate", "title": "Vendor Management", "city": "Cleveland", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Shelby", "ln": "English", "org": "Coastal Community Health", "title": "Strategic Sourcing Agent", "city": "Jacksonville", "state": "FL", "mph": "", "target": "", "comment": "Intro", "sa_target": "", "sa_notes": ""}, {"fn": "Jalisa", "ln": "Johnson", "org": "Coastal Community Health", "title": "Strategic Sourcing Agent - Value Analysis", "city": "Jacksonville", "state": "FL", "mph": "", "target": "", "comment": "Intro", "sa_target": "", "sa_notes": ""}, {"fn": "Phillipa", "ln": "Jones", "org": "Coastal Community Health", "title": "Value Analysis  Coordinator", "city": "Jacksonville", "state": "FL", "mph": "", "target": "", "comment": "Intro", "sa_target": "", "sa_notes": ""}, {"fn": "Maria", "ln": "Aazami", "org": "CommonSpirit Health", "title": "System Manager, Strategic Sourcing", "city": "Phoenix", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Robyn", "ln": "James", "org": "Community Hospital Corporation", "title": "Manager, Pharmacy Integration and Account Management", "city": "Plano", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Chad", "ln": "Smith", "org": "Community Hospital Corporation", "title": "Director of GPO Account Management", "city": "Plano", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Rosemary", "ln": "Zapata", "org": "Community Hospital Corporation", "title": "Regional Director, GPO Account Management", "city": "Plano", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Will", "ln": "Lee", "org": "Connecticut Children's Hospital", "title": "Senior Director of Supply Chain & Support Services", "city": "East Hartford", "state": "CT", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Rosanna", "ln": "Malo", "org": "Connecticut Children's Hospital", "title": "Pharmacy Buyer", "city": "Hartford", "state": "CT", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Arielle", "ln": "Santangelo", "org": "Connecticut Children's Hospital", "title": "Manager of Clinical Value Analysis and Strategic Sourcing", "city": "East Hartford", "state": "CT", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Chris", "ln": "Bryant", "org": "CoxHealth", "title": "Director, Strategic Sourcing", "city": "Ozark", "state": "MO", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Rachel", "ln": "Anderson", "org": "DCH Health System", "title": "Vice President of Supply Chain", "city": "Northport", "state": "AL", "mph": "", "target": "Y", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Angela", "ln": "Mayo", "org": "ECU Health", "title": "Executive Director, Retail and Ambulatory Pharmacy Operations", "city": "Greenville", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Connor", "ln": "Norviel", "org": "ECU Health", "title": "Pharmacy Supply Chain Manager", "city": "Greenville", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jason", "ln": "Trahan", "org": "ECU Health", "title": "Executive Director, Pharmacy Business", "city": "Greenville", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Charlie", "ln": "Waters", "org": "ECU Health", "title": "Chief Pharmacy Officer", "city": "Greenville", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jacque", "ln": "Follmer", "org": "Fairview Health Services", "title": "Portfolio Manager", "city": "Blaine", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Karli", "ln": "Gunderson", "org": "Fairview Health Services", "title": "Contract Specialist", "city": "Saint Paul", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kristin", "ln": "Jorgenson", "org": "Fairview Health Services", "title": "VP, Pharmacy Business Office Operations", "city": "Eagan", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jason", "ln": "Muelken", "org": "Fairview Health Services", "title": "Senior Contract Specialist", "city": "Apple Valley", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kristen", "ln": "Owens", "org": "Fairview Health Services", "title": "Specialty OR Portfolio Manager", "city": "Saint Paul", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Beth", "ln": "Martin", "org": "Firelands Health", "title": "Manager of Supply Chain", "city": "Fremont", "state": "OH", "mph": "", "target": "y", "comment": "Intro", "sa_target": "", "sa_notes": ""}, {"fn": "Mike", "ln": "Messa, Jr.", "org": "Firelands Health", "title": "Director of Supply Chain", "city": "Sandusky", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Emily", "ln": "Cinquegrana", "org": "Froedtert ThedaCare Health", "title": "Manager - Supply Chain Sourcing & Procurement", "city": "Menomonee Falls", "state": "WI", "mph": "N", "target": "Y", "comment": "Bromedicon plus", "sa_target": "", "sa_notes": ""}, {"fn": "Jack", "ln": "Koczela", "org": "Froedtert ThedaCare Health", "title": "Vice President of Supply Chain", "city": "Menomonee Falls", "state": "WI", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Brittany", "ln": "Nickel", "org": "Froedtert ThedaCare Health", "title": "Portfolio Implementation Specialist", "city": "Greenfield", "state": "WI", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lakeisha", "ln": "Hall", "org": "Harris Health System", "title": "Value Analysis", "city": "Bellaire", "state": "TX", "mph": "", "target": "Y", "comment": "Jeff intro", "sa_target": "", "sa_notes": ""}, {"fn": "Sandy", "ln": "Wise", "org": "Harris Health System", "title": "Director", "city": "Dallas", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Annieh", "ln": "Okumura", "org": "Hawaii Health Systems Corporation", "title": "Materials Project Manager", "city": "Honolulu", "state": "HI", "mph": "", "target": "", "comment": "Jeff", "sa_target": "", "sa_notes": ""}, {"fn": "Russell", "ln": "Taira", "org": "Hawaii Health Systems Corporation", "title": "Executive Director of Contracts & Materials Management", "city": "Honolulu", "state": "HI", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kahealani", "ln": "Dunn", "org": "Hawaii Pacific Health", "title": "Purchasing Manager", "city": "Honolulu", "state": "HI", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Shawn", "ln": "Leon-Guerrero", "org": "Hawaii Pacific Health", "title": "Director Logistics and Systems", "city": "Honolulu", "state": "HI", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Justin", "ln": "Smith", "org": "Hawaii Pacific Health", "title": "Contracts Manager", "city": "Honolulu", "state": "HI", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Shannon", "ln": "Takayesu", "org": "Hawaii Pacific Health", "title": "Director, Pharmacy Business and Pharmacy Supply Chain", "city": "Waipahu", "state": "HI", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Sandra", "ln": "Yoshioka", "org": "Hawaii Pacific Health", "title": "Pharmacy Buyer", "city": "Honolulu", "state": "HI", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jeffery", "ln": "Kaminski", "org": "HCA", "title": "Vice President Clinical Operations", "city": "Shawnee", "state": "KS", "mph": "", "target": "", "comment": "", "sa_target": "Y", "sa_notes": "Regional contracts needed Colorado, Texas, Virginia can reference cost savings of up to 40% vs hiring FTE's seen in Dallas using our contracting structure"}, {"fn": "Jeremy", "ln": "Owens", "org": "HCA", "title": "CEO, MidAmerica Supply Chain", "city": "Shawnee", "state": "KS", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Brie", "ln": "Richmond", "org": "Health Resource Services", "title": "Chief Operating Officer", "city": "Seattle", "state": "WA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Annette", "ln": "Karageanes", "org": "Henry Ford Health", "title": "System Director, Pharmacy Operations", "city": "Detroit", "state": "MI", "mph": "N", "target": "Y", "comment": "Are they still aligned to The Resource Group", "sa_target": "", "sa_notes": ""}, {"fn": "Syeda", "ln": "Khan", "org": "Henry Ford Health", "title": "Integration Manager", "city": "Livonia", "state": "MI", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Annette", "ln": "Allbee", "org": "HonorHealth", "title": "Director - Supply Chain Management", "city": "Peoria", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Belle", "ln": "Balkan", "org": "HonorHealth", "title": "Specialist - Supply Chain", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Joe", "ln": "Bates", "org": "HonorHealth", "title": "Director of Procurement", "city": "Phoenix", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Patti", "ln": "Beaupre", "org": "HonorHealth", "title": "Specialist - Supply Chain", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Joseph", "ln": "Cook", "org": "HonorHealth", "title": "Director - Sourcing & Contracting", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "George", "ln": "Danut", "org": "HonorHealth", "title": "Analyst II - Supply Chain", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Samantha", "ln": "Fidler", "org": "HonorHealth", "title": "Periop Clinical Value Analysis", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Gregory", "ln": "Gualtieri", "org": "HonorHealth", "title": "Senior Supply Chain Analyst", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lynn", "ln": "Holland", "org": "HonorHealth", "title": "Director Healthcare Technology Management (HTM)", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Ryan", "ln": "Kirane", "org": "HonorHealth", "title": "VP Supply Chain Services / Sustainability Officer", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lindsey", "ln": "Magana", "org": "HonorHealth", "title": "Director, Sourcing Analytics & Engagement", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Matt", "ln": "Mitchell", "org": "HonorHealth", "title": "Capital Program Director", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "John", "ln": "Neil", "org": "HonorHealth", "title": "President", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kyle", "ln": "Newhouse", "org": "HonorHealth", "title": "Category Administrator", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Bina", "ln": "Patel", "org": "HonorHealth", "title": "Vice President, Pharmacy Services", "city": "Chandler", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jennaya", "ln": "Post", "org": "HonorHealth", "title": "Clinical Value Analysis Program Director", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Heide", "ln": "Pries Charron", "org": "HonorHealth", "title": "Clinical Value Analysis Program Director", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Shundine", "ln": "Riley", "org": "HonorHealth", "title": "Category Administrator - CV and Imaging", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jeremy", "ln": "Samuelson", "org": "HonorHealth", "title": "Strategic Sourcing Program Manager", "city": "Peoria", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Stephanie", "ln": "Schneck", "org": "HonorHealth", "title": "System Director - Pharmacy Services", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Scout", "ln": "Smidt", "org": "HonorHealth", "title": "Program Manager - Strategic Sourcing", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Seth", "ln": "Washispack", "org": "HonorHealth", "title": "Purchased Services Category Administrator", "city": "Scottsdale", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Helen", "ln": "Wooden", "org": "HonorHealth", "title": "Director of Pharmacy", "city": "Fountain Hills", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Mario", "ln": "Zamarripa", "org": "HonorHealth", "title": "Director - Supply Chain", "city": "Phoenix", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Christopher", "ln": "Box", "org": "HOPCo", "title": "Director of Global Supply Chain Analytics", "city": "Phoenix", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Carol", "ln": "Dean", "org": "HOPCo", "title": "Senior Director, Supply Chain Management", "city": "Phoenix", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Chris", "ln": "Toomes", "org": "HOPCo", "title": "Senior Vice President Global Supply Chain and Logistics", "city": "Phoenix", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lisa", "ln": "Utley", "org": "HOPCo", "title": "Vice President, Supply Chain & Collaborative Procurement", "city": "Phoenix", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Cynthia", "ln": "Dempsey", "org": "Houston Methodist", "title": "Vice President, System Strategic Sourcing & Contracting", "city": "Houston", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Mark", "ln": "Growcott", "org": "Houston Methodist", "title": "Senior Director Financial Operations", "city": "Houston", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Tim", "ln": "Miller", "org": "Houston Methodist", "title": "Senior Vice President, Supply Chain Management", "city": "Houston", "state": "TX", "mph": "Y", "target": "Y", "comment": "Martin Borjo - My lead Why so long?", "sa_target": "", "sa_notes": ""}, {"fn": "Mustafa", "ln": "Quraishi", "org": "Houston Methodist", "title": "Manager, Supply Chain Finance & Analytics", "city": "Sugar Land", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Dennis", "ln": "Robinson", "org": "Houston Methodist", "title": "Director of Supply Chain", "city": "Richmond", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Matthew", "ln": "Rominger", "org": "Houston Methodist", "title": "Director Supply Chain", "city": "Cypress", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Terry", "ln": "Thompson", "org": "Houston Methodist", "title": "Director System Strategic Sourcing & Contracting", "city": "Missouri City", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Ericka", "ln": "Zuleta", "org": "Houston Methodist", "title": "Manager, Vendor Management", "city": "Missouri City", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Allen", "ln": "Wish", "org": "Inova", "title": "Senior Director of Strategic Sourcing and Clinical Value Analysis", "city": "Baltimore", "state": "MD", "mph": "", "target": "", "comment": "Jeff intro", "sa_target": "", "sa_notes": ""}, {"fn": "Jeromie", "ln": "Atkinson", "org": "Intermountain Health", "title": "Chief Supply Chain Officer", "city": "Midvale", "state": "UT", "mph": "", "target": "", "comment": "Jeff/Gina", "sa_target": "", "sa_notes": ""}, {"fn": "Michelle", "ln": "Craig", "org": "Intermountain Health", "title": "Category Manager II", "city": "Thornton", "state": "CO", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jess", "ln": "Larcade", "org": "Intermountain Health", "title": "Chief Procurement Officer", "city": "Midvale", "state": "UT", "mph": "N", "target": "Potentially", "comment": "WHo is managing IONM", "sa_target": "", "sa_notes": ""}, {"fn": "Sapele", "ln": "Utu", "org": "Intermountain Health", "title": "Director, Category Management, Indirect - Shared Services and Administration", "city": "Midvale", "state": "UT", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Alyson", "ln": "Voelkerding", "org": "Intermountain Health", "title": "Category Manager II - Pharmacy", "city": "Saint Charles", "state": "MO", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Trent", "ln": "West", "org": "Intermountain Health", "title": "Category Manager", "city": "Eagle Mountain", "state": "UT", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "John", "ln": "Miller", "org": "John Hopkins Health System", "title": "Sourcing Specialist", "city": "Baltimore", "state": "MD", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Sophia", "ln": "Taylor", "org": "Johns Hopkins Health System", "title": "Clinical Sourcing Specialist", "city": "Baltimore", "state": "MD", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jessie", "ln": "Yang", "org": "Johns Hopkins Health System", "title": "Sourcing Specialist", "city": "Baltimore", "state": "MD", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Sherry", "ln": "Yaft", "org": "JPS Health Network", "title": "Inpatient Pharmacy Manager and Pharmacist in Charge", "city": "Arlington", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Susan", "ln": "Kenning", "org": "LCMC Health", "title": "Clinical Products Specialist", "city": "Metairie", "state": "LA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Erica", "ln": "Poole", "org": "LCMC Health", "title": "Director, Supply Chain & Logistics", "city": "Gretna", "state": "LA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Cora", "ln": "Murphy", "org": "Lee Health", "title": "System Director Value Analysis", "city": "Fort Myers", "state": "FL", "mph": "", "target": "Y", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Luis", "ln": "Soto", "org": "Lee Health", "title": "Vice President SCM", "city": "Fort Myers", "state": "FL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Rudy", "ln": "Vera", "org": "Legacy Health", "title": "Manager of Strategic Sourcing & Contracting", "city": "Portland", "state": "OR", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Mike", "ln": "Wolfe", "org": "Legacy Health", "title": "Manager of Supply Chain Operations", "city": "Portland", "state": "OR", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Morgan", "ln": "Caldwell", "org": "Lifebridge Health", "title": "Strategic Sourcing Agent", "city": "Monrovia", "state": "MD", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Nirav", "ln": "Shah", "org": "LifeBridge Health", "title": "Systems Analyst for Value Analysis", "city": "Monrovia", "state": "MD", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Gayle", "ln": "Smith", "org": "LifeBridge Health", "title": "Corporate Manager, Contract Administration", "city": "Monrovia", "state": "MD", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Cynthia", "ln": "Elliott", "org": "Lifepoint Health", "title": "Director of Pharmacy", "city": "Mayfield", "state": "KY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "David", "ln": "Harlow", "org": "Mary Washington Healthcare", "title": "Assistant Vice President / Pharmacy Services and Solutions", "city": "Fredericksburg", "state": "VA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Roger", "ln": "Larkin", "org": "Maury Regional Health", "title": "Administrative Director Supply Chain", "city": "Columbia", "state": "TN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Justin", "ln": "Albers", "org": "Mayo Clinic / Captis", "title": "Senior Director", "city": "Lewisville", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Mike", "ln": "Arnold", "org": "Mayo Clinic / Captis", "title": "Senior Category Manager", "city": "Rochester", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Marcy", "ln": "Benson", "org": "Mayo Clinic / Captis", "title": "Senior Contract and Portfolio Manager", "city": "Phoenix", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Adam", "ln": "Ewald", "org": "Mayo Clinic / Captis", "title": "Director Innovative Pharmacy Programs", "city": "Byron", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Elizabeth", "ln": "Fitzgerald", "org": "Mayo Clinic / Captis", "title": "Senior Director", "city": "Rochester", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Erik", "ln": "Frich", "org": "Mayo Clinic / Captis", "title": "Director Supply Chain Management", "city": "Rochester", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Amy", "ln": "Lam", "org": "Mayo Clinic / Captis", "title": "Senior Category Manager", "city": "Farmington", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Josh", "ln": "Lee", "org": "Mayo Clinic / Captis", "title": "Senior Category Manager", "city": "Wabasha", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Scott", "ln": "Marsh", "org": "Mayo Clinic / Captis", "title": "Senior Value Analysis Portfolio Advisor", "city": "Rochester", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Adam", "ln": "McNeill", "org": "Mayo Clinic / Captis", "title": "Category Manager", "city": "Rochester", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lindsey", "ln": "Sheeran", "org": "Mayo Clinic / Captis", "title": "Senior Director", "city": "Rochester", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Tim", "ln": "Smith", "org": "Mayo Clinic / Captis", "title": "Director", "city": "Rochester", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Olivia", "ln": "Smith", "org": "Mayo Clinic / Captis", "title": "Senior Manager", "city": "Mantorville", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jane", "ln": "Torzewski", "org": "Mayo Clinic / Captis", "title": "Director Category Management", "city": "Rochester", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lacy", "ln": "Van Hill", "org": "Mayo Clinic / Captis", "title": "Senior Manager", "city": "Grand Meadow", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Nancy", "ln": "Wobig", "org": "Mayo Clinic / Captis", "title": "Senior Principle Director", "city": "Faribault", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Joe", "ln": "Wright", "org": "Mayo Clinic / Captis", "title": "Senior Manager", "city": "Rochester", "state": "MN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Erin", "ln": "Lynch", "org": "Medical University of South Carolina", "title": "System Director of Pharmacy Procurement", "city": "Charleston", "state": "SC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Austin", "ln": "Zoeller", "org": "Medical University of South Carolina", "title": "Chief Supply Chain Officer", "city": "Charleston", "state": "SC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Chrystal", "ln": "Huerta", "org": "Memorial Hermann Health System", "title": "AVP, Supply Chain", "city": "Houston", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "La Junda", "ln": "Johnson", "org": "Memorial Hermann Health System", "title": "Associate Vice President, Supply Chain Operations", "city": "Houston", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jennifer", "ln": "Nelson", "org": "Memorial Hermann Health System", "title": "Director, Pharmacy Supply Chain", "city": "Katy", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "John", "ln": "Tomochek", "org": "Memorial Hermann Health System", "title": "Vice President & Chief Supply Chain Officer", "city": "Houston", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Emil", "ln": "Layacan", "org": "Montefiore Einstein", "title": "Director of Finance and Supply Chain", "city": "Bronx", "state": "NY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Brad", "ln": "Haupt", "org": "Monument Health", "title": "Vice President Supply Chain and Contract Management", "city": "Rapid City", "state": "SD", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Chad", "ln": "Webb", "org": "Monument Health", "title": "Contract Planner, Supply Chain", "city": "Rapid City", "state": "SD", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Bryan", "ln": "Covert", "org": "Mount Sinai Health System", "title": "Senior Director Expense Management", "city": "New York", "state": "NY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Vishal", "ln": "Goel", "org": "Mount Sinai Health System", "title": "Senior Director", "city": "Montgomery", "state": "NJ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Paras", "ln": "Koushal", "org": "Mount Sinai Health System", "title": "Clinical Category Manager", "city": "New York", "state": "NY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Alex", "ln": "Lentini", "org": "Mount Sinai Health System", "title": "Director, Supply Chain Technology", "city": "New York", "state": "NY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Carlos", "ln": "Maceda", "org": "Mount Sinai Health System", "title": "Vice President and Chief Supply Chain Officer", "city": "New York", "state": "NY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kevin", "ln": "Mcdonnell", "org": "Mount Sinai Health System", "title": "Senior Director of Materials/Logistics", "city": "Lyndhurst", "state": "NJ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Chantell", "ln": "Pagan", "org": "Mount Sinai Health System", "title": "Operating Room Materials Manager", "city": "New York", "state": "NY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Franco", "ln": "Sagliocca", "org": "Mount Sinai Health System", "title": "Senior Director", "city": "New York", "state": "NY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Danny", "ln": "Shin", "org": "Mount Sinai Health System", "title": "Sourcing Lead II", "city": "New York", "state": "NY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kenny", "ln": "Yu", "org": "Mount Sinai Health System", "title": "Chief Pharmacy Officer", "city": "Monroe Township", "state": "NJ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Janelle", "ln": "Nelson", "org": "Mountain Independent Hospital Alliance - MIHA", "title": "CEO", "city": "Valier", "state": "MT", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lexi", "ln": "Pluid", "org": "Mountain Independent Hospital Alliance - MIHA", "title": "Operations Project Manager", "city": "Valier", "state": "MT", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Greg", "ln": "Dalton", "org": "MTWY Health", "title": "Materials Manager", "city": "Whitefish", "state": "MT", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Tom", "ln": "Frasca", "org": "MTWY Health", "title": "Sourcing and Contracting Manager", "city": "Billings", "state": "MT", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kodi", "ln": "Larson", "org": "MTWY Health", "title": "Director of Supply Chain", "city": "Billings", "state": "MT", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Heather", "ln": "Reddish", "org": "MTWY Health", "title": "Senior Purchasing Agent", "city": "Kalispell", "state": "MT", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Toni", "ln": "Young", "org": "MTWY Health", "title": "Value Analysis Manager", "city": "Saginaw", "state": "MI", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Andy", "ln": "Hamilton", "org": "MultiCare Health System", "title": "AVP Supply Chain", "city": "Tacoma", "state": "WA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Patrick", "ln": "Linggi", "org": "MultiCare Health System", "title": "Director of Pharmacy", "city": "Tacoma", "state": "WA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Stacy", "ln": "Roberts", "org": "MultiCare Health System", "title": "Contract and Sourcing Program Manager", "city": "Tacoma", "state": "WA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Brad", "ln": "Beaman", "org": "Munson Healthcare", "title": "Clinical Pharmacy Utilization Specialist", "city": "Traverse City", "state": "MI", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Cathi", "ln": "Cornelius", "org": "Munson Healthcare", "title": "Pharmacy Clinical Utilization Specialist", "city": "Traverse City", "state": "MI", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Rick", "ln": "Daubenmier", "org": "Nebraska Medicine", "title": "Director of Supply Chain", "city": "Elkhorn", "state": "NE", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Katie", "ln": "Kottas", "org": "Nebraska Medicine", "title": "Value Analysis Coordinator", "city": "Omaha", "state": "NE", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Gichelle", "ln": "Clark", "org": "North Mississippi Health Services", "title": "Director Specialty Retail / 340B", "city": "Tupelo", "state": "MS", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Patti", "ln": "Hawkins", "org": "North Mississippi Health Services", "title": "Sys Dir - AmbuPharmacy Svcs + 340B Dir, Outpatient, Infusion, Home & Spclty Pharma", "city": "Tupelo", "state": "MS", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Elizabeth", "ln": "Wynia", "org": "Northern Plains Premier Collaborative", "title": "Category Administrator - Pharmacy", "city": "Sioux Falls", "state": "SD", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kyle", "ln": "Jones", "org": "Norton Healthcare", "title": "Director of Purchasing", "city": "Louisville", "state": "KY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Brent", "ln": "Pacanowski", "org": "Norton Healthcare", "title": "System Director, Supply Chain", "city": "Louisville", "state": "KY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Mark", "ln": "Welch", "org": "Novant Health", "title": "Senior Vice President of Supply Chain", "city": "Mooresville", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Joshua", "ln": "Soliman", "org": "NYU Langone Health", "title": "Director of Pharmacy Services", "city": "New York", "state": "NY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Ryan", "ln": "Pepper", "org": "Ochsner Health", "title": "AVP Pharmacy Supply Chain", "city": "New Orleans", "state": "LA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Brent", "ln": "Depperschmidt", "org": "OnHand", "title": "President", "city": "Arlington", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "Y", "sa_notes": "OnHand may be SA's way of contracting with THR at the facility level. THR will only contract us through THPG currently but this passthrough supplychain company may be our way in. Onhand is a join venture with THR"}, {"fn": "Mark", "ln": "Anway", "org": "OU Health", "title": "Vice President of Supply Chain Services", "city": "Oklahoma City", "state": "OK", "mph": "Y", "target": "Y", "comment": "If you have time give Alan Pate kudos to the VP", "sa_target": "", "sa_notes": ""}, {"fn": "Glena", "ln": "Brauer", "org": "OU Health", "title": "Assistant Vice President - Supply Chain Strategic Sourcing", "city": "Oklahoma City", "state": "OK", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lauren", "ln": "Campbell", "org": "OU Health", "title": "Category Manager", "city": "Oklahoma City", "state": "OK", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lynn", "ln": "Fowler", "org": "OU Health", "title": "Director \u2013 Supply Chain & Value Analysis", "city": "Norman", "state": "OK", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Stephanie", "ln": "Kleindl", "org": "OU Health", "title": "Supply Chain Category Manager", "city": "Edmond", "state": "OK", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Pete", "ln": "Spencer", "org": "OU Health", "title": "Administrative Director of Category Management and Value Analysis", "city": "Edmond", "state": "OK", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Hailey", "ln": "Meadows", "org": "Ovation Healthcare", "title": "Vice President, Elevate", "city": "Nashville", "state": "TN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Josh", "ln": "Sandler", "org": "Ovation Healthcare", "title": "President", "city": "Brentwood", "state": "TN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kari", "ln": "Smoot", "org": "Ovation Healthcare", "title": "Clinical Resource Director", "city": "Jenks", "state": "OK", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jessie", "ln": "Schulte", "org": "Partners Cooperative", "title": "Director Finance", "city": "Atlanta", "state": "GA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Sarah", "ln": "Blount", "org": "Partners Cooperative, Inc", "title": "VP, Member Engagement & Value Analytics", "city": "Powder Springs", "state": "GA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jonathan", "ln": "Brockmann", "org": "Partners Cooperative, Inc.", "title": "VP Contracts and Strategic Sourcing", "city": "Atlanta", "state": "GA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jermaine", "ln": "Chatman", "org": "Partners Cooperative, Inc.", "title": "VP, Technology and Business Development", "city": "McDonough", "state": "GA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Dane", "ln": "Henry", "org": "Partners Cooperative, Inc.", "title": "President and CEO", "city": "Atlanta", "state": "GA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Zach", "ln": "Kles", "org": "Partners Cooperative, Inc.", "title": "VP, Strategic Sourcing", "city": "Jefferson", "state": "GA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "David", "ln": "Mason", "org": "Partners Cooperative, Inc.", "title": "Director of Strategic Partnerships", "city": "Acworth", "state": "GA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Brandy", "ln": "Peterson", "org": "Partners Cooperative, Inc.", "title": "EVP, CFO", "city": "McDonough", "state": "GA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lisa", "ln": "Burke", "org": "Phoenix Children's Hospital", "title": "Supply Chain Program Manager", "city": "Phoenix", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kate", "ln": "Lizzi", "org": "Phoenix Children's Hospital", "title": "Value Analysis Manager", "city": "Phoenix", "state": "AZ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Sherry", "ln": "Johnson", "org": "Piedmont Healthcare, Inc.", "title": "Commodity Manager, Supply Chain Management", "city": "Atlanta", "state": "GA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jason", "ln": "Parrott", "org": "Piedmont Healthcare, Inc.", "title": "Strategic Sourcing Analyst", "city": "Atlanta", "state": "GA", "mph": "N", "target": "Y", "comment": "Who do we talk to about IONM?", "sa_target": "Y", "sa_notes": "ATL is a new SA market and one of our surgeons Dr. Edwards operates at Piedmont. Need a contract to cover his cases."}, {"fn": "Andrew", "ln": "Salzman", "org": "Piedmont Healthcare, Inc.", "title": "Director, Contracts", "city": "Atlanta", "state": "GA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jon", "ln": "Kingsley", "org": "Premier Health", "title": "Senior Sourcing Manager", "city": "Wysox", "state": "PA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Brandon", "ln": "Smith", "org": "Premier Health", "title": "System Director of Value Analysis", "city": "Dayton", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Stacy", "ln": "Tolpin", "org": "Premier Health", "title": "Clinical Sourcing Manager, Value Analysis Nurse", "city": "Troy", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Phyllis", "ln": "Williams", "org": "Premier Health", "title": "Clinical Sourcing Manager, Value Analysis", "city": "Dayton", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Charlie", "ln": "Zook", "org": "Premier Health", "title": "Clinical Sourcing Manager, Value Analysis", "city": "Troy", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Tina", "ln": "Daly", "org": "Presbyterian Health Services", "title": "Capital Sourcing and Biomed Director", "city": "Albuquerque", "state": "NM", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kelley", "ln": "Moore", "org": "Presbyterian Health Services", "title": "Chief Supply Chain Officer", "city": "Albuquerque", "state": "NM", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Teresa", "ln": "Rosko Payne", "org": "Presbyterian Health Services", "title": "Sourcing and Contracting Manager", "city": "Albuquerque", "state": "NM", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Steven", "ln": "Rowell", "org": "Presbyterian Health Services", "title": "Sourcing and Value Analysis Senior Manager", "city": "Albuquerque", "state": "NM", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Josh", "ln": "Bakelaar", "org": "Prisma Health", "title": "Vice President, Supply Chain", "city": "Simpsonville", "state": "SC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jin", "ln": "Chong", "org": "Prisma Health", "title": "Category Manager - Interventional & Vascular Medicine", "city": "Simpsonville", "state": "SC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Andrew", "ln": "Crites", "org": "Prisma Health", "title": "Manager - Category Management", "city": "Simpsonville", "state": "SC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Yassir", "ln": "Janah", "org": "Prisma Health", "title": "Executive Director, Supply Chain Spend Management & Informatics", "city": "Simpsonville", "state": "SC", "mph": "", "target": "Y", "comment": "merging with Erlinger", "sa_target": "", "sa_notes": ""}, {"fn": "Philipp", "ln": "Monterroyo", "org": "Prisma Health", "title": "Manager, Pharmacy Supply Chain", "city": "Simpsonville", "state": "SC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Christie", "ln": "Nelson", "org": "Prisma Health", "title": "Director of Category Management and Value Analysis", "city": "Simpsonville", "state": "SC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Dawn", "ln": "Goike", "org": "Renown Health", "title": "Buyer", "city": "Reno", "state": "NV", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Wendy", "ln": "Harris", "org": "Renown Health", "title": "Senior Buyer", "city": "Reno", "state": "NV", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Abby", "ln": "Ware", "org": "Renown Health", "title": "Associate Buyer", "city": "Reno", "state": "NV", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Corrine", "ln": "Salmon", "org": "Rush University Medical Center", "title": "Strategic Sourcing Manager", "city": "Chicago", "state": "IL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Tracy", "ln": "Burrell Hancock", "org": "RWJBarnabas Health", "title": "VP", "city": "Oceanport", "state": "NJ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Judy", "ln": "Carney", "org": "RWJBarnabas Health", "title": "Regional Director", "city": "Oceanport", "state": "NJ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Laura", "ln": "Lezynski", "org": "RWJBarnabas Health", "title": "Purchasing Supervisor", "city": "Oceanport", "state": "NJ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jason", "ln": "Montero", "org": "RWJBarnabas Health", "title": "Regional Director", "city": "Oceanport", "state": "NJ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Christopher", "ln": "Nnadi", "org": "RWJBarnabas Health", "title": "Regional Director", "city": "Oceanport", "state": "NJ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Andrew", "ln": "Kaiser", "org": "Saint Francis Health System", "title": "System Director Strategic Sourcing and Value Analysis", "city": "Tulsa", "state": "OK", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Philip", "ln": "Smith", "org": "Saint Francis Health System", "title": "Executive Director Supply Chain", "city": "Tulsa", "state": "OK", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Ike", "ln": "Duran", "org": "Seattle Children's Hospital", "title": "Supply Chain Director of Sourcing & Procurement", "city": "Seattle", "state": "WA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Sean", "ln": "Farley", "org": "Seattle Children's Hospital", "title": "VP, Supply Chain and Chief Procurement Officer", "city": "Seattle", "state": "WA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Sally", "ln": "Stewart", "org": "Seattle Children's Hospital", "title": "Supply Chain Operations Director", "city": "Seattle", "state": "WA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Robert", "ln": "Felts", "org": "Sinai Chicago", "title": "System Director, Supply Chain", "city": "Chicago", "state": "IL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Tejal", "ln": "Patel", "org": "Sinai Chicago", "title": "Vice President, Operations", "city": "Chicago", "state": "IL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "John", "ln": "Candito", "org": "South Georgia Medical Center", "title": "Director, Supply Chain Management", "city": "Valdosta", "state": "GA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kevin", "ln": "Shrake", "org": "SSM Health", "title": "Administrator Cardiac Service Line", "city": "Kirkwood", "state": "MO", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Luis", "ln": "Scalella", "org": "St. Luke\u2019s Health System", "title": "Director of Purchased Services", "city": "Meridian", "state": "ID", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Circe", "ln": "Calvin", "org": "St. Luke's Health System", "title": "Clinical Category Director", "city": "Meridian", "state": "ID", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kelley", "ln": "Curtis", "org": "St. Luke's Health System", "title": "Chief Pharmacy Officer, VP Pharmacy & Lab", "city": "Boise", "state": "ID", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Christina", "ln": "Cabrera", "org": "Sutter Health", "title": "Contracts Manager", "city": "Sacramento", "state": "CA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "David", "ln": "Hamlet", "org": "Sutter Health", "title": "Division Director - Supply Chain Operations", "city": "San Francisco", "state": "CA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Meena", "ln": "Medler", "org": "Sutter Health", "title": "Vice President, Chief Supply Chain Officer", "city": "Emeryville", "state": "CA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Taneisha", "ln": "Milkunic", "org": "Sutter Health", "title": "Divisional Supply Chain Director", "city": "Sacramento", "state": "CA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Christina", "ln": "Schubert", "org": "Sutter Health", "title": "Senior Director FNS", "city": "Emeryville", "state": "CA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "George", "ln": "Stephenson III", "org": "Sutter Health", "title": "Manager, Supply Chain Excellence", "city": "Maryville", "state": "TN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Brandon", "ln": "Dickey", "org": "T.J. Regional Health", "title": "Chief Quality Officer / Chief of Hospital Operations", "city": "Glasgow", "state": "KY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Pamela", "ln": "Spears", "org": "T.J. Regional Health", "title": "Director, Supply Chain", "city": "Glasgow", "state": "KY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Neil", "ln": "Thornbury", "org": "T.J. Regional Health", "title": "Chief Executive Officer", "city": "Glasgow", "state": "KY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Glenn", "ln": "George", "org": "Texas Children\u2019s Hospital", "title": "Application Architect", "city": "Houston", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Joseph", "ln": "Bloom", "org": "Texas Children's Hospital", "title": "Application Architect", "city": "Houston", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kyle", "ln": "Corpuz", "org": "Texas Children's Hospital", "title": "Business Systems Analyst", "city": "Richmond", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Craig", "ln": "Lane", "org": "Texas Children's Hospital", "title": "Director Pharmacy", "city": "Houston", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Sheila", "ln": "Little", "org": "Texas Children's Hospital", "title": "Assistant Director, Regional Supply Chain Operations", "city": "Conroe", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "April", "ln": "Richmond", "org": "Texas Children's Hospital", "title": "Clinical Value Analysis Coordinator", "city": "Houston", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Renee", "ln": "Williams", "org": "Texas Children's Hospital", "title": "Clinical Value Analysis Coordinator", "city": "Pearland", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Chris", "ln": "Bailey", "org": "Texas Health Resources", "title": "Vice President of Supply Chain Sourcing", "city": "Arlington", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Shaun", "ln": "Clinton", "org": "Texas Health Resources", "title": "Senior Vice President, Supply Chain Management", "city": "Arlington", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lea", "ln": "Scopelliti", "org": "The Guthrie Clinic", "title": "Director, Strategic Sourcing", "city": "Sayre", "state": "PA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Sierra", "ln": "Slater", "org": "The Guthrie Clinic", "title": "Manager, Pharmacy Operations", "city": "Sayre", "state": "PA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Natalie", "ln": "Smith", "org": "The Guthrie Clinic", "title": "Contract Manager", "city": "Sayre", "state": "PA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Taja", "ln": "Wiley-Clark", "org": "The Guthrie Clinic", "title": "Pharmacy Buyer", "city": "Cortland", "state": "NY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Patrick", "ln": "Rega", "org": "The Queen's Health Systems", "title": "Director, Strategic Supply Sourcing", "city": "Honolulu", "state": "HI", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Keane", "ln": "Young", "org": "The Queen's Health Systems", "title": "Senior Director of Supply Chain", "city": "Honolulu", "state": "HI", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Adrian", "ln": "Cunningham", "org": "TriHealth", "title": "Director of Supply Chain Operations", "city": "Cincinnati", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Danielle", "ln": "Little", "org": "TriHealth", "title": "Logistics Supervisor", "city": "Cincinnati", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Derrick", "ln": "Billups", "org": "UC Health", "title": "Vice President, Supply Chain and Support Services", "city": "Cincinnati", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kristen", "ln": "Crawford", "org": "UC Health", "title": "Director, Strategic Sourcing", "city": "Cincinnati", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Luigi", "ln": "Oliverio", "org": "UC Health", "title": "Director Supply Chain Operations", "city": "Cincinnati", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Spencer", "ln": "Schilling", "org": "UC Health", "title": "Pharmacy Infusion Manager", "city": "Cincinnati", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Casey", "ln": "Huffman", "org": "UCHealth", "title": "Category Manager", "city": "Aurora", "state": "CO", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kimberly", "ln": "Talana", "org": "UCHealth", "title": "Value Analysis Manager", "city": "Aurora", "state": "CO", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Ellie", "ln": "Venafro", "org": "UCHealth", "title": "Director of Supply Chain", "city": "Aurora", "state": "CO", "mph": "", "target": "", "comment": "PPO convo ", "sa_target": "", "sa_notes": ""}, {"fn": "David", "ln": "Marr", "org": "UK HealthCare", "title": "Director, Pharmacy Supply Chain", "city": "Lexington", "state": "KY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jennifer", "ln": "Dale", "org": "UNC Health", "title": "HCS Executive Director Supply Chain Operations", "city": "Durham", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Joel", "ln": "Graham", "org": "UNC Health", "title": "HCS Director, Distribution and Logistics", "city": "Durham", "state": "NC", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Adnan", "ln": "Fazal", "org": "UnityPoint Health", "title": "Executive Director of Contracting", "city": "West Des Moines", "state": "IA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Sammy", "ln": "Ghanem", "org": "University Hospital at Downstate", "title": "Associate Director of Pharmacy", "city": "Staten Island", "state": "NY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Angie", "ln": "Bruns", "org": "University of Kansas Health System", "title": "Senior Director, Spend Management", "city": "Mission", "state": "KS", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Julie", "ln": "Woodruff", "org": "University of Kansas Health System", "title": "System Director Category Management", "city": "Kansas City", "state": "KS", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Matthew", "ln": "Chui", "org": "University of Miami Health", "title": "Clinical Oncology Pharmacy Manager", "city": "Miami", "state": "FL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Emison", "ln": "Contreras", "org": "University of Miami Health", "title": "Pharmacist", "city": "Aventura", "state": "FL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Chirag", "ln": "Desai", "org": "University of Miami Health", "title": "AVP of Pharmacy Insights, Analytics and Strategy", "city": "Medley", "state": "FL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Lief", "ln": "McDonald", "org": "University of Mississippi Medical Center", "title": "Director of Category Management and Procurement, Non-Clinical", "city": "Madison", "state": "MS", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Andrea", "ln": "Williford", "org": "University of Mississippi Medical Center", "title": "Senior Director of Category Management & Procurement", "city": "Canton", "state": "MS", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Chad", "ln": "Mathis", "org": "UofL Health", "title": "Chief Medical Officer", "city": "Louisville", "state": "KY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Laura", "ln": "Polson", "org": "UofL Health", "title": "System Director Clinical Value Analysis", "city": "Louisville", "state": "KY", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Allen", "ln": "Broome", "org": "USA Health", "title": "Administrator of Clinical Operations", "city": "Fairhope", "state": "AL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "David", "ln": "Edwards", "org": "UT Southwestern Medical Center", "title": "Category Manager, Sourcing & Contracting", "city": "Dallas", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Talisa", "ln": "Watson", "org": "UT Southwestern Medical Center", "title": "Category Manager, Sourcing & Contracting", "city": "Dallas", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Thomas", "ln": "Carey", "org": "UW Health", "title": "Senior Director of Pharmacy Services", "city": "Chicago", "state": "IL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Dan", "ln": "Salmonsen", "org": "UW Medicine", "title": "Senior System Director of Strategic Sourcing", "city": "Snohomish", "state": "WA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Francine", "ln": "Yoshioka", "org": "UW Medicine", "title": "Director Value Analysis", "city": "Seattle", "state": "WA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Tracy", "ln": "Hall", "org": "Vandalia Health", "title": "Executive Director of Pharmacy", "city": "Culloden", "state": "WV", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Steve", "ln": "Perry", "org": "Vandalia Health", "title": "Vice President, Supply Chain Management", "city": "Charleston", "state": "WV", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Brian", "ln": "Sayre", "org": "Vandalia Health", "title": "Vice President Pharmacy Services", "city": "Charleston", "state": "WV", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kevin", "ln": "Williams", "org": "Vandalia Health", "title": "Value Analysis Manager", "city": "Charleston", "state": "WV", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Dustin", "ln": "Groves", "org": "Vanderbilt Health", "title": "Manager of Clinical and Capital Sourcing", "city": "Mt. Juliet", "state": "TN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Michael", "ln": "O'Neal", "org": "Vanderbilt Health", "title": "Senior\u00a0Director \u2013 Pharmacy", "city": "Brentwood", "state": "TN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Yolanda", "ln": "Redmond", "org": "Vanderbilt Health", "title": "Chief Supply Chain Officer", "city": "Mt. Juliet", "state": "TN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Kevin", "ln": "Scharfman", "org": "Vanderbilt Health", "title": "Purchasing Manager - Pharmacy Supply Chain", "city": "Nashville", "state": "TN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jason", "ln": "Tomichek", "org": "Vanderbilt Health", "title": "Director, Pharmacy Supply Chain", "city": "Nashville", "state": "TN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Sara", "ln": "Coley", "org": "Vanderbilt Health Purchasing Collaborative", "title": "Manager - Client Executives", "city": "Ooltewah", "state": "TN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Teresa", "ln": "Dail", "org": "Vanderbilt Health Purchasing Collaborative", "title": "President", "city": "Mt. Juliet", "state": "TN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Suzy", "ln": "Eberle", "org": "Vanderbilt Health Purchasing Collaborative", "title": "Director", "city": "Spring", "state": "TX", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Tony", "ln": "Gribble", "org": "Vanderbilt Health Purchasing Collaborative", "title": "Vice President", "city": "Mt. Juliet", "state": "TN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Anthony", "ln": "Meldrum", "org": "Vanderbilt Health Purchasing Collaborative", "title": "Director of Sales & Business Development", "city": "Mt. Juliet", "state": "TN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Michael", "ln": "Galetta", "org": "Virtua Health", "title": "Director Systems, Analytics and Procurement", "city": "Evesham", "state": "NJ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Ana", "ln": "Sanchez", "org": "Virtua Health", "title": "Vice President of Supply Chain & Support Services", "city": "Evesham", "state": "NJ", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Tony", "ln": "Watson", "org": "Vizient Southeast", "title": "SVP, Markets and Supply Chain", "city": "Tampa", "state": "FL", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Donna", "ln": "Bailey", "org": "WellLink Group Purchasing fka CHAMPS", "title": "Member Growth and Engagement Manager", "city": "Cleveland", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Dawn", "ln": "Motiejunas", "org": "WellLink Group Purchasing fka CHAMPS", "title": "National Account Manager", "city": "Cleveland", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Jim", "ln": "Simpson", "org": "WellLink Group Purchasing fka CHAMPS", "title": "Vendor Relationship Manager", "city": "Cleveland", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Maria", "ln": "Summers", "org": "WellLink Group Purchasing fka CHAMPS", "title": "Chief Customer Success & Revenue Officer", "city": "Cleveland", "state": "OH", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Melissa", "ln": "Boyles", "org": "WellSpan Health", "title": "Senior Director - Supply Chain, Logistics & Distribution", "city": "York", "state": "PA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Justin", "ln": "Kemp", "org": "WellSpan Health", "title": "Regional Supply Chain Director", "city": "York", "state": "PA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Johna", "ln": "Wokulich", "org": "Wellspan Health", "title": "Value Analysis Coordinator", "city": "York", "state": "PA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Dan", "ln": "Atkinson", "org": "West Tennessee Healthcare", "title": "Executive Director of Supply Chain", "city": "Medina", "state": "TN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "James", "ln": "Fountain", "org": "West Tennessee Healthcare", "title": "Vice President of Operations", "city": "Jackson", "state": "TN", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Dave", "ln": "Gilfillan", "org": "Williamson Health", "title": "Supply Chain Director", "city": "Franklin", "state": "TN", "mph": "", "target": "", "comment": "assignment and BR", "sa_target": "", "sa_notes": ""}, {"fn": "Matt", "ln": "Murphy", "org": "Yankee Alliance", "title": "VP, Strategic Member Growth", "city": "Georgetown", "state": "MA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Robert", "ln": "Ritchie", "org": "Yankee Alliance", "title": "VP Pharmacy", "city": "Wakefield", "state": "MA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}, {"fn": "Todd", "ln": "Senard", "org": "Yankee Alliance", "title": "Director, Contracting", "city": "Andover", "state": "MA", "mph": "", "target": "", "comment": "", "sa_target": "", "sa_notes": ""}];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let selectedAttendee = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let audioStream = null;
+let recordStart = null;
+let timerInterval = null;
+let currentUtterances = [];   // [{speaker, text}]
+let speakerSampleMap = {};    // speaker code -> sample text
+let speakerRoleMap = {};      // speaker code -> 'me' | 'contact'
+let currentDurationSec = 0;
+let currentSummary = "";
+let currentActionItems = [];
+let currentTranscriptText = "";
+let callLogs = [];
+
+/* ============================================================
+   INIT
+   ============================================================ */
+window.addEventListener('DOMContentLoaded', async () => {
+  await loadCallLogs();
+  renderAttendeeList('');
+  wireTabs();
+  wireSearch();
+  wireCallScreen();
+  wireReviewScreen();
+  wireHistory();
+});
+
+/* ============================================================
+   TABS
+   ============================================================ */
+function wireTabs(){
+  document.querySelectorAll('.tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const target = btn.dataset.tab;
+      document.getElementById('tab-record').classList.toggle('hidden', target!=='record');
+      document.getElementById('tab-history').classList.toggle('hidden', target!=='history');
+      if(target==='history') renderHistory();
+    });
+  });
+}
+
+/* ============================================================
+   ATTENDEE PICKER
+   ============================================================ */
+function wireSearch(){
+  document.getElementById('searchInput').addEventListener('input', (e)=>{
+    renderAttendeeList(e.target.value);
+  });
+}
+
+function calledSet(){
+  const s = new Set();
+  callLogs.forEach(c => s.add(c.fn+'|'+c.ln+'|'+c.org));
+  return s;
+}
+
+function renderAttendeeList(query){
+  const q = query.trim().toLowerCase();
+  const called = calledSet();
+  let results = ATTENDEES;
+  if(q){
+    results = ATTENDEES.filter(a =>
+      (a.fn+' '+a.ln).toLowerCase().includes(q) ||
+      (a.org||'').toLowerCase().includes(q) ||
+      (a.title||'').toLowerCase().includes(q)
+    );
+  }
+  const list = document.getElementById('attendeeList');
+  const countEl = document.getElementById('attendeeCount');
+  countEl.textContent = q ? `${results.length} match${results.length===1?'':'es'}` : `${results.length} attendees`;
+
+  if(results.length===0){
+    list.innerHTML = '<div class="empty-state">No one matches that search.</div>';
+    return;
+  }
+
+  // cap render for performance on long unfiltered list
+  const cap = q ? results.length : 60;
+  const shown = results.slice(0, cap);
+
+  list.innerHTML = shown.map((a, idx) => {
+    const realIdx = ATTENDEES.indexOf(a);
+    const isCalled = called.has(a.fn+'|'+a.ln+'|'+a.org);
+    const flags = [];
+    if(a.target === 'Y') flags.push('<span class="flag target">Target</span>');
+    if(a.sa_target === 'Y') flags.push('<span class="flag sa">SA Target</span>');
+    if(isCalled) flags.push('<span class="flag called">Logged</span>');
+    return `<div class="attendee-row" data-idx="${realIdx}">
+      <div class="attendee-main">
+        <div class="name">${escapeHtml(a.fn)} ${escapeHtml(a.ln)}</div>
+        <div class="role">${escapeHtml(a.title||'')}${a.title&&a.org?' · ':''}${escapeHtml(a.org||'')}</div>
+      </div>
+      <div class="attendee-flags">${flags.join('')}</div>
+    </div>`;
+  }).join('');
+
+  if(!q && results.length > cap){
+    list.innerHTML += `<div class="empty-state">Showing first ${cap} — search to narrow down.</div>`;
+  }
+
+  list.querySelectorAll('.attendee-row').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      selectedAttendee = ATTENDEES[parseInt(row.dataset.idx)];
+      openCallScreen();
+    });
+  });
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============================================================
+   CALL SCREEN
+   ============================================================ */
+function openCallScreen(){
+  document.getElementById('view-picker').classList.add('hidden');
+  document.getElementById('view-call').classList.remove('hidden');
+  document.getElementById('view-processing').classList.add('hidden');
+  document.getElementById('view-speakers').classList.add('hidden');
+  document.getElementById('view-review').classList.add('hidden');
+  renderAttendeeCard('callAttendeeCard', selectedAttendee);
+  resetRecordUI();
+}
+
+function renderAttendeeCard(elId, a){
+  document.getElementById(elId).innerHTML = `
+    <div class="name">${escapeHtml(a.fn)} ${escapeHtml(a.ln)}</div>
+    <div class="role">${escapeHtml(a.title||'—')}${a.title&&a.org?' · ':''}${escapeHtml(a.org||'')}</div>
+    <div class="loc">${escapeHtml(a.city||'')}${a.city&&a.state?', ':''}${escapeHtml(a.state||'')}</div>
+  `;
+}
+
+function wireCallScreen(){
+  document.getElementById('changeAttendeeBtn').addEventListener('click', ()=>{
+    document.getElementById('view-call').classList.add('hidden');
+    document.getElementById('view-picker').classList.remove('hidden');
+  });
+  document.getElementById('recordBtn').addEventListener('click', toggleRecording);
+}
+
+function resetRecordUI(){
+  document.getElementById('recordBtn').classList.remove('recording');
+  document.getElementById('timer').textContent = '00:00';
+  document.getElementById('recordStepLabel').textContent = 'Ready when you are';
+  document.getElementById('recordHint').textContent = 'Put the phone where it can hear both of you — speaker call or in person.';
+  document.getElementById('recordHint').classList.remove('live');
+}
+
+async function toggleRecording(){
+  if(mediaRecorder && mediaRecorder.state === 'recording'){
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+}
+
+async function startRecording(){
+  try{
+    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  }catch(err){
+    document.getElementById('recordHint').textContent = "Couldn't access the microphone — check Safari's site settings and allow mic access.";
+    return;
+  }
+  let mimeType = '';
+  for(const t of ['audio/mp4','audio/aac','audio/webm']){
+    if(window.MediaRecorder && MediaRecorder.isTypeSupported(t)){ mimeType = t; break; }
+  }
+  mediaRecorder = mimeType ? new MediaRecorder(audioStream, {mimeType}) : new MediaRecorder(audioStream);
+  audioChunks = [];
+  mediaRecorder.ondataavailable = e => { if(e.data.size>0) audioChunks.push(e.data); };
+  mediaRecorder.start();
+  recordStart = Date.now();
+  document.getElementById('recordBtn').classList.add('recording');
+  document.getElementById('recordStepLabel').textContent = 'Recording';
+  document.getElementById('recordHint').textContent = 'Tap again to stop when the call ends.';
+  document.getElementById('recordHint').classList.add('live');
+  timerInterval = setInterval(updateTimer, 500);
+}
+
+function updateTimer(){
+  const secs = Math.floor((Date.now()-recordStart)/1000);
+  const m = String(Math.floor(secs/60)).padStart(2,'0');
+  const s = String(secs%60).padStart(2,'0');
+  document.getElementById('timer').textContent = `${m}:${s}`;
+}
+
+function stopRecording(){
+  clearInterval(timerInterval);
+  currentDurationSec = Math.floor((Date.now()-recordStart)/1000);
+  const mimeType = mediaRecorder.mimeType || 'audio/mp4';
+  mediaRecorder.onstop = async () => {
+    audioStream.getTracks().forEach(t=>t.stop());
+    const blob = new Blob(audioChunks, {type: mimeType});
+    if(blob.size < 2000){
+      document.getElementById('recordHint').textContent = "That recording was too short to process — try again.";
+      resetRecordUI();
+      return;
+    }
+    await processRecording(blob);
+  };
+  mediaRecorder.stop();
+}
+
+/* ============================================================
+   PROCESSING PIPELINE
+   ============================================================ */
+async function processRecording(blob){
+  showProcessing('Uploading audio…', 'This usually takes under a minute.');
+  try{
+    const uploadUrl = await aaiUpload(blob);
+    showProcessing('Transcribing the call…', 'Separating the two voices as it goes.');
+    const transcriptId = await aaiSubmit(uploadUrl);
+    const result = await aaiPoll(transcriptId, (status)=>{
+      showProcessing('Transcribing the call…', `Status: ${status}…`);
+    });
+
+    if(!result.utterances || result.utterances.length===0){
+      throw new Error('No speech was detected in that recording.');
+    }
+    currentUtterances = result.utterances.map(u => ({speaker: u.speaker, text: u.text}));
+
+    // pick top 2 speakers by total characters
+    const totals = {};
+    currentUtterances.forEach(u => { totals[u.speaker] = (totals[u.speaker]||0) + u.text.length; });
+    const topSpeakers = Object.keys(totals).sort((a,b)=>totals[b]-totals[a]).slice(0,2);
+
+    speakerSampleMap = {};
+    topSpeakers.forEach(sp=>{
+      const first = currentUtterances.find(u=>u.speaker===sp);
+      speakerSampleMap[sp] = first ? first.text.slice(0,160) : '';
+    });
+
+    if(topSpeakers.length === 1){
+      // only one voice detected — skip assignment, label as contact by default
+      speakerRoleMap = {};
+      speakerRoleMap[topSpeakers[0]] = 'contact';
+      await finalizeTranscriptAndSummarize();
+    } else {
+      showSpeakerAssign(topSpeakers);
+    }
+  }catch(err){
+    showProcessingError(err.message || 'Something went wrong during transcription.');
+  }
+}
+
+function showProcessing(msg, sub){
+  document.getElementById('view-call').classList.add('hidden');
+  document.getElementById('view-speakers').classList.add('hidden');
+  document.getElementById('view-review').classList.add('hidden');
+  document.getElementById('view-processing').classList.remove('hidden');
+  document.getElementById('procMsg').textContent = msg;
+  document.getElementById('procSub').textContent = sub;
+  document.getElementById('procError').innerHTML = '';
+}
+
+function showProcessingError(message){
+  document.getElementById('procMsg').textContent = 'Transcription failed';
+  document.getElementById('procSub').textContent = '';
+  document.getElementById('procError').innerHTML = `
+    <div class="error-box">${escapeHtml(message)}</div>
+    <button class="btn btn-secondary" id="backToCallBtn">Back</button>
+  `;
+  document.getElementById('backToCallBtn').addEventListener('click', ()=>{
+    document.getElementById('view-processing').classList.add('hidden');
+    document.getElementById('view-call').classList.remove('hidden');
+    resetRecordUI();
+  });
+}
+
+/* --- AssemblyAI calls --- */
+async function aaiUpload(blob){
+  const res = await fetch('https://api.assemblyai.com/v2/upload', {
+    method: 'POST',
+    headers: { authorization: ASSEMBLYAI_KEY },
+    body: blob
+  });
+  if(!res.ok) throw new Error('Audio upload failed (AssemblyAI). Check your API key.');
+  const data = await res.json();
+  return data.upload_url;
+}
+
+async function aaiSubmit(audioUrl){
+  const res = await fetch('https://api.assemblyai.com/v2/transcript', {
+    method: 'POST',
+    headers: { authorization: ASSEMBLYAI_KEY, 'content-type': 'application/json' },
+    body: JSON.stringify({ audio_url: audioUrl, speaker_labels: true })
+  });
+  if(!res.ok) throw new Error('Could not start transcription.');
+  const data = await res.json();
+  return data.id;
+}
+
+async function aaiPoll(id, onStatus){
+  const start = Date.now();
+  while(true){
+    if(Date.now() - start > 5*60*1000) throw new Error('Transcription timed out after 5 minutes.');
+    const res = await fetch(`https://api.assemblyai.com/v2/transcript/${id}`, {
+      headers: { authorization: ASSEMBLYAI_KEY }
+    });
+    const data = await res.json();
+    if(onStatus) onStatus(data.status);
+    if(data.status === 'completed') return data;
+    if(data.status === 'error') throw new Error(data.error || 'Transcription error.');
+    await new Promise(r=>setTimeout(r, 3000));
+  }
+}
+
+/* ============================================================
+   SPEAKER ASSIGNMENT
+   ============================================================ */
+function showSpeakerAssign(speakers){
+  document.getElementById('view-processing').classList.add('hidden');
+  document.getElementById('view-speakers').classList.remove('hidden');
+  const container = document.getElementById('speakerCards');
+  container.innerHTML = speakers.map(sp => `
+    <div class="speaker-card" data-speaker="${sp}">
+      <div class="label">Speaker ${sp}</div>
+      <div class="snippet">${escapeHtml(speakerSampleMap[sp])}${speakerSampleMap[sp].length>=160?'…':''}</div>
+      <div class="btn-row" style="margin-top:0;">
+        <button class="btn btn-secondary assign-btn" data-speaker="${sp}" data-role="me">This is me</button>
+        <button class="btn btn-secondary assign-btn" data-speaker="${sp}" data-role="contact">This is ${escapeHtml(selectedAttendee.fn)}</button>
+      </div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.assign-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const sp = btn.dataset.speaker;
+      const role = btn.dataset.role;
+      speakerRoleMap[sp] = role;
+      // auto-assign the other speaker to the opposite role if only 2 speakers
+      const allSp = Object.keys(speakerSampleMap);
+      if(allSp.length === 2){
+        const other = allSp.find(s=>s!==sp);
+        speakerRoleMap[other] = role === 'me' ? 'contact' : 'me';
+      }
+      finalizeTranscriptAndSummarize();
+    });
+  });
+}
+
+/* ============================================================
+   BUILD LABELED TRANSCRIPT + SUMMARIZE
+   ============================================================ */
+async function finalizeTranscriptAndSummarize(){
+  const lines = currentUtterances.map(u=>{
+    const role = speakerRoleMap[u.speaker];
+    const label = role === 'me' ? 'Me' : (selectedAttendee.fn || 'Contact');
+    return `${label}: ${u.text}`;
+  });
+  currentTranscriptText = lines.join('\n\n');
+
+  showProcessing('Summarizing the conversation…', 'Pulling out key points and action items.');
+
+  try{
+    const parsed = await claudeSummarize(currentTranscriptText, selectedAttendee);
+    currentSummary = parsed.summary || '';
+    currentActionItems = Array.isArray(parsed.action_items) ? parsed.action_items : [];
+    showReview();
+  }catch(err){
+    showProcessingError('Transcript is ready, but summarizing failed: ' + (err.message || 'unknown error') + '. You can still save with a manual summary.');
+    currentSummary = '';
+    currentActionItems = [];
+    // allow fallback to review screen manually
+    const backBtn = document.getElementById('backToCallBtn');
+    if(backBtn){
+      backBtn.textContent = 'Continue to review anyway';
+      backBtn.replaceWith(backBtn.cloneNode(true));
+      document.getElementById('backToCallBtn').addEventListener('click', showReview);
+    }
+  }
+}
+
+async function claudeSummarize(transcriptText, attendee){
+  const prompt = `You are helping a business development rep at a healthcare IONM / Surgical First Assist services company summarize a call from an industry conference (IDN Summit).
+
+Contact: ${attendee.fn} ${attendee.ln}, ${attendee.title || 'unknown title'} at ${attendee.org || 'unknown organization'}.
+
+Transcript (speaker-labeled):
+"""
+${transcriptText}
+"""
+
+Respond with ONLY valid JSON, no markdown code fences, no preamble, in exactly this shape:
+{"summary": "2-4 sentence summary of what was discussed and the contact's disposition", "action_items": ["specific follow-up action", "another follow-up action"]}
+
+If there are no clear action items, return an empty array for action_items. Keep the summary factual and specific to what was actually said.`;
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: 1000,
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
+  if(!res.ok) throw new Error('Claude API request failed.');
+  const data = await res.json();
+  const text = (data.content || []).filter(c=>c.type==='text').map(c=>c.text).join('');
+  const clean = text.replace(/```json|```/g,'').trim();
+  return JSON.parse(clean);
+}
+
+/* ============================================================
+   REVIEW SCREEN
+   ============================================================ */
+function showReview(){
+  document.getElementById('view-processing').classList.add('hidden');
+  document.getElementById('view-speakers').classList.add('hidden');
+  document.getElementById('view-review').classList.remove('hidden');
+  renderAttendeeCard('reviewAttendeeCard', selectedAttendee);
+  document.getElementById('summaryField').value = currentSummary;
+  document.getElementById('fullTranscript').textContent = currentTranscriptText;
+  renderActionItems();
+}
+
+function renderActionItems(){
+  const list = document.getElementById('actionItemsList');
+  list.innerHTML = currentActionItems.map((item, i) => `
+    <li class="ai-item">
+      <input type="text" data-i="${i}" value="${escapeHtml(item)}">
+      <button data-i="${i}" class="remove-ai" aria-label="Remove">×</button>
+    </li>
+  `).join('');
+  list.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input', ()=>{ currentActionItems[parseInt(inp.dataset.i)] = inp.value; });
+  });
+  list.querySelectorAll('.remove-ai').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      currentActionItems.splice(parseInt(btn.dataset.i),1);
+      renderActionItems();
+    });
+  });
+}
+
+function wireReviewScreen(){
+  document.getElementById('addActionItem').addEventListener('click', ()=>{
+    currentActionItems.push('');
+    renderActionItems();
+  });
+  document.getElementById('summaryField').addEventListener('input', (e)=>{
+    currentSummary = e.target.value;
+  });
+  document.getElementById('discardCallBtn').addEventListener('click', ()=>{
+    resetCallState();
+    document.getElementById('view-review').classList.add('hidden');
+    document.getElementById('view-picker').classList.remove('hidden');
+  });
+  document.getElementById('saveCallBtn').addEventListener('click', saveCurrentCall);
+}
+
+async function saveCurrentCall(){
+  const entry = {
+    id: 'call_' + Date.now(),
+    fn: selectedAttendee.fn, ln: selectedAttendee.ln,
+    org: selectedAttendee.org, title: selectedAttendee.title,
+    city: selectedAttendee.city, state: selectedAttendee.state,
+    date: new Date().toISOString(),
+    durationSec: currentDurationSec,
+    summary: currentSummary.trim(),
+    actionItems: currentActionItems.filter(a=>a.trim().length>0),
+    transcript: currentTranscriptText
+  };
+  callLogs.push(entry);
+  await saveCallLogs();
+  resetCallState();
+  document.getElementById('view-review').classList.add('hidden');
+  document.getElementById('view-picker').classList.remove('hidden');
+  document.getElementById('searchInput').value = '';
+  renderAttendeeList('');
+}
+
+function resetCallState(){
+  selectedAttendee = null;
+  currentUtterances = [];
+  speakerSampleMap = {};
+  speakerRoleMap = {};
+  currentSummary = '';
+  currentActionItems = [];
+  currentTranscriptText = '';
+  currentDurationSec = 0;
+  audioChunks = [];
+}
+
+/* ============================================================
+   STORAGE
+   ============================================================ */
+async function loadCallLogs(){
+  try{
+    const res = await window.storage.get('call-logs', false);
+    callLogs = res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){
+    callLogs = [];
+  }
+}
+async function saveCallLogs(){
+  try{
+    await window.storage.set('call-logs', JSON.stringify(callLogs), false);
+  }catch(e){
+    console.error('Storage error', e);
+  }
+}
+
+/* ============================================================
+   HISTORY TAB
+   ============================================================ */
+function wireHistory(){
+  document.getElementById('exportBtn').addEventListener('click', exportCSV);
+}
+
+function renderHistory(){
+  document.getElementById('histCount').textContent = `${callLogs.length} call${callLogs.length===1?'':'s'} logged`;
+  const list = document.getElementById('histList');
+  if(callLogs.length===0){
+    list.innerHTML = '<div class="empty-state">No calls logged yet. Record one from the Record tab.</div>';
+    return;
+  }
+  const sorted = [...callLogs].sort((a,b)=> new Date(b.date) - new Date(a.date));
+  list.innerHTML = sorted.map(c => {
+    const d = new Date(c.date);
+    const mins = Math.round(c.durationSec/60);
+    return `<div class="hist-item" data-id="${c.id}">
+      <div class="h-name">${escapeHtml(c.fn)} ${escapeHtml(c.ln)}</div>
+      <div class="h-meta">${escapeHtml(c.org||'')} · ${d.toLocaleDateString()} · ${mins} min</div>
+      <div class="h-summary">${escapeHtml(c.summary||'No summary.')}</div>
+      ${c.actionItems && c.actionItems.length ? `<div class="h-actions"><strong>Action items</strong><ul>${c.actionItems.map(a=>`<li>${escapeHtml(a)}</li>`).join('')}</ul></div>` : ''}
+      <button class="h-delete" data-id="${c.id}">Delete this entry</button>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.h-delete').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      callLogs = callLogs.filter(c=>c.id !== btn.dataset.id);
+      await saveCallLogs();
+      renderHistory();
+    });
+  });
+}
+
+/* ============================================================
+   CSV EXPORT — one row per call, Salesforce-bulk-upload-ready
+   ============================================================ */
+function csvEscape(v){
+  const s = String(v==null?'':v);
+  if(/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+
+function exportCSV(){
+  if(callLogs.length===0) return;
+  const headers = ['First Name','Last Name','Organization','Title','City','State','Call Date','Duration (min)','Summary','Action Items','Full Transcript'];
+  const rows = [...callLogs].sort((a,b)=> new Date(a.date) - new Date(b.date)).map(c => [
+    c.fn, c.ln, c.org, c.title, c.city, c.state,
+    new Date(c.date).toISOString().slice(0,16).replace('T',' '),
+    Math.round(c.durationSec/60),
+    c.summary,
+    (c.actionItems||[]).map(a=>'• '+a).join('\n'),
+    c.transcript
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `call-log-idn-summit-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
